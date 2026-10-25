@@ -245,8 +245,10 @@ export default function App() {
         onGateUnlocked={() => setGateOpened(true)}
         onFlowerAwakened={(idx) => {
           setFlowersAwakened((prev) => new Set(prev).add(idx));
-          const wish = config.flowerWishes[idx % config.flowerWishes.length];
-          showToast(`✦ Spirit Blossom #${idx + 1}: "${wish}"`);
+          if (!isFilmPlaying) {
+            const wish = config.flowerWishes[idx % config.flowerWishes.length];
+            showToast(`✦ Spirit Blossom #${idx + 1}: "${wish}"`);
+          }
         }}
         onMemoryRead={(idx) => {
           setMemoriesRead((prev) => new Set(prev).add(idx));
@@ -260,18 +262,22 @@ export default function App() {
         }}
         onBridgeUnlocked={() => {
           setBridgeUnlocked(true);
-          showToast('✦ All 3 Guardian Lanterns ignite! The Lantern Bridge opens.');
+          if (!isFilmPlaying) {
+            showToast('✦ All 3 Guardian Lanterns ignite! The Lantern Bridge opens.');
+          }
         }}
         onFinaleAwakened={() => {
           setFinaleTriggered(true);
           // Do NOT pop up the card modal automatically per user request; let user admire the 3D scene!
         }}
         onNearbyObjectChange={(obj) => setNearbyObject(obj)}
-        onShowToast={showToast}
+        onShowToast={(msg) => {
+          if (!isFilmPlaying) showToast(msg);
+        }}
         exportPostcardRef={exportPostcardRef}
       />
 
-      {/* 55-Second Cinematic Film Overlay (Hidden timer & chapters per request) */}
+      {/* Cinematic Film Overlay */}
       <FilmOverlay
         isFilmPlaying={isFilmPlaying}
         filmElapsed={filmElapsed}
@@ -300,10 +306,11 @@ export default function App() {
             <button
               type="button"
               onClick={start55SecondFilm}
-              className="btn-gold px-3.5 py-1.5 rounded-full text-xs font-cinzel tracking-wider uppercase shadow-xl flex items-center gap-1.5 touch-manipulation"
+              className="btn-gold px-3.5 py-1.5 rounded-full text-xs font-cinzel tracking-wider uppercase shadow-xl flex items-center gap-1.5 touch-manipulation hover:scale-105 active:scale-95 transition"
+              title="Replay the cinematic film"
             >
-              <span>🎬</span>
-              <span className="hidden xs:inline">55s Film</span>
+              <span>↺</span>
+              <span>Replay Film</span>
             </button>
             <button
               type="button"
@@ -361,8 +368,23 @@ export default function App() {
         </div>
       )}
 
-      {/* Floating Toast Notification */}
-      {toastMessage && (
+      {/* Floating Quick Replay Action (Always available after film or in free roam) */}
+      {isStarted && !isFilmPlaying && (
+        <div className="fixed top-14 sm:top-16 right-3 sm:right-4 z-20 pointer-events-auto">
+          <button
+            type="button"
+            onClick={start55SecondFilm}
+            className="btn-gold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-cinzel font-semibold tracking-wider uppercase shadow-[0_0_20px_rgba(245,196,105,0.4)] flex items-center gap-1.5 touch-manipulation hover:scale-105 active:scale-95 transition"
+            title="Replay the cinematic film"
+          >
+            <span className="text-sm">↺</span>
+            <span>Replay Film</span>
+          </button>
+        </div>
+      )}
+
+      {/* Floating Toast Notification (Hidden during cinematic view) */}
+      {toastMessage && !isFilmPlaying && (
         <div className="fixed top-14 sm:top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-300 max-w-md w-11/12">
           <div className="glass-panel px-4 py-2 rounded-2xl text-center border-amber-400/40 shadow-xl">
             <p className="text-xs sm:text-sm text-amber-100 font-medium">{toastMessage}</p>

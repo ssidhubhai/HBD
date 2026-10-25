@@ -1217,16 +1217,27 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         scene.add(birthdayBannerSprite);
       }
 
-      // High starry constellation ("✧ NAME ✧")
+      // Majestic Celestial Sky Inscription ("HAPPY BIRTHDAY" & Glowing "SHUBHAM")
       const sc = document.createElement('canvas');
-      sc.width = 1024;
-      sc.height = 256;
+      sc.width = 2048;
+      sc.height = 768;
       const sctx = sc.getContext('2d');
       if (sctx) {
-        sctx.strokeStyle = 'rgba(245, 196, 105, 0.55)';
-        sctx.lineWidth = 2;
+        // Soft radial starlight nebula backdrop
+        const nebGrad = sctx.createRadialGradient(1024, 384, 50, 1024, 384, 900);
+        nebGrad.addColorStop(0, 'rgba(56, 189, 248, 0.16)');
+        nebGrad.addColorStop(0.4, 'rgba(245, 158, 11, 0.08)');
+        nebGrad.addColorStop(1, 'rgba(5, 9, 20, 0)');
+        sctx.fillStyle = nebGrad;
+        sctx.fillRect(0, 0, 2048, 768);
+
+        // Constellation star connection lines forming an astral halo
+        sctx.strokeStyle = 'rgba(253, 230, 138, 0.45)';
+        sctx.lineWidth = 2.5;
         const pts = [
-          [120, 140], [210, 95], [320, 130], [450, 85], [570, 135], [700, 90], [820, 130], [910, 100]
+          [180, 240], [360, 160], [580, 210], [820, 130],
+          [1024, 95],
+          [1228, 130], [1468, 210], [1688, 160], [1868, 240]
         ];
         sctx.beginPath();
         pts.forEach(([x, y], i) => {
@@ -1234,26 +1245,95 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           else sctx.lineTo(x, y);
         });
         sctx.stroke();
-        pts.forEach(([x, y]) => {
-          sctx.fillStyle = '#fffbeb';
+
+        // Secondary bottom star arc
+        const bpts = [
+          [280, 560], [540, 620], [840, 650], [1024, 660], [1208, 650], [1508, 620], [1768, 560]
+        ];
+        sctx.beginPath();
+        bpts.forEach(([x, y], i) => {
+          if (i === 0) sctx.moveTo(x, y);
+          else sctx.lineTo(x, y);
+        });
+        sctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+        sctx.stroke();
+
+        // Draw glittering star nodes with 4-point star bursts
+        const allStars = [...pts, ...bpts];
+        allStars.forEach(([x, y]) => {
+          // Glow halo
+          sctx.fillStyle = '#fef08a';
           sctx.beginPath();
           sctx.arc(x, y, 5, 0, Math.PI * 2);
           sctx.fill();
+
+          // 4-point star flare
+          sctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+          sctx.lineWidth = 1.5;
+          sctx.beginPath();
+          sctx.moveTo(x - 14, y); sctx.lineTo(x + 14, y);
+          sctx.moveTo(x, y - 14); sctx.lineTo(x, y + 14);
+          sctx.stroke();
         });
 
-        sctx.font = '700 68px Cinzel, serif';
+        // 1. SKY TEXT: "✦ HAPPY BIRTHDAY ✦"
+        sctx.font = "bold 64px 'Cinzel', serif";
         sctx.textAlign = 'center';
-        sctx.shadowColor = '#38bdf8';
-        sctx.shadowBlur = 28;
+        sctx.textBaseline = 'middle';
+        
+        // Amber starlight glow pass
+        sctx.shadowColor = '#f59e0b';
+        sctx.shadowBlur = 32;
+        sctx.fillStyle = '#fef3c7';
+        sctx.fillText('✦ HAPPY BIRTHDAY ✦', 1024, 250);
+
+        // Core bright pass
+        sctx.shadowColor = '#ffffff';
+        sctx.shadowBlur = 12;
+        sctx.fillStyle = '#ffffff';
+        sctx.fillText('✦ HAPPY BIRTHDAY ✦', 1024, 250);
+
+        // 2. SKY TEXT: GLOWING "SHUBHAM" (Intense celestial luminescence)
+        sctx.font = "900 148px 'Cinzel', serif";
+
+        // Outer cyan astral aura
+        sctx.shadowColor = '#06b6d4';
+        sctx.shadowBlur = 75;
+        sctx.lineWidth = 14;
+        sctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+        sctx.strokeText(name.toUpperCase(), 1024, 435);
+
+        // Mid golden fire aura
+        sctx.shadowColor = '#fbbf24';
+        sctx.shadowBlur = 45;
+        sctx.fillStyle = '#fde68a';
+        sctx.fillText(name.toUpperCase(), 1024, 435);
+
+        // Diamond white incandescent core
+        sctx.shadowColor = '#ffffff';
+        sctx.shadowBlur = 16;
+        sctx.fillStyle = '#ffffff';
+        sctx.fillText(name.toUpperCase(), 1024, 435);
+
+        // Flanking celestial star ornaments
+        sctx.font = "bold 56px 'Cinzel', serif";
         sctx.fillStyle = '#fef08a';
-        sctx.fillText(`✧ ${name.toUpperCase()} ✧`, 512, 195);
+        sctx.shadowColor = '#38bdf8';
+        sctx.shadowBlur = 24;
+        sctx.fillText('✧ ✦ ✧', 1024, 545);
 
         const stex = new THREE.CanvasTexture(sc);
         stex.colorSpace = THREE.SRGBColorSpace;
-        const smat = new THREE.SpriteMaterial({ map: stex, transparent: true, opacity: stateRef.current.finaleTriggered ? 0.95 : 0.25 });
+        const smat = new THREE.SpriteMaterial({
+          map: stex,
+          transparent: true,
+          opacity: stateRef.current.finaleTriggered ? 0.98 : 0.45,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending
+        });
         constellationSprite = new THREE.Sprite(smat);
-        constellationSprite.position.set(0, 26, -54);
-        constellationSprite.scale.set(34, 8.5, 1);
+        constellationSprite.position.set(0, 28, -54);
+        constellationSprite.scale.set(46, 17.5, 1);
         scene.add(constellationSprite);
       }
     }
@@ -1517,14 +1597,22 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
 
+    // Camera Zoom State (Pinch on Mobile, Wheel on Desktop, FOV 26° to 88°)
+    let targetFov = 58;
+    let touchMode: 'none' | 'drag' | 'pinch' = 'none';
+    let prevPinchDist = 0;
+
     let isPointerDragging = false;
     let prevPointer = { x: 0, y: 0 };
+
     const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
       isPointerDragging = true;
       prevPointer.x = e.clientX;
       prevPointer.y = e.clientY;
     };
     const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
       if (!isPointerDragging || stateRef.current.isFilmPlaying || stateRef.current.cameraMode !== 'FREE_ROAM') return;
       const dx = e.clientX - prevPointer.x;
       const dy = e.clientY - prevPointer.y;
@@ -1534,13 +1622,79 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       player.yaw -= dx * 0.0042;
       player.pitch = Math.max(-0.45, Math.min(0.55, player.pitch - dy * 0.0032));
     };
-    const onPointerUp = () => {
+    const onPointerUp = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
       isPointerDragging = false;
     };
 
     window.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+
+    // Multi-Touch: 1-finger look around & 2-finger pinch-to-zoom for mobile
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        touchMode = 'pinch';
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        prevPinchDist = Math.hypot(dx, dy);
+      } else if (e.touches.length === 1) {
+        touchMode = 'drag';
+        prevPointer.x = e.touches[0].clientX;
+        prevPointer.y = e.touches[0].clientY;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && touchMode === 'pinch') {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const currentDist = Math.hypot(dx, dy);
+        const delta = currentDist - prevPinchDist;
+        if (Math.abs(delta) > 1.0) {
+          // Spreading fingers apart -> Zoom In (lower FOV); pinching fingers together -> Zoom Out (higher FOV)
+          targetFov = Math.max(26, Math.min(88, targetFov - delta * 0.16));
+          prevPinchDist = currentDist;
+        }
+      } else if (e.touches.length === 1 && touchMode === 'drag') {
+        if (stateRef.current.isFilmPlaying || stateRef.current.cameraMode !== 'FREE_ROAM') return;
+        const cx = e.touches[0].clientX;
+        const cy = e.touches[0].clientY;
+        const dx = cx - prevPointer.x;
+        const dy = cy - prevPointer.y;
+        prevPointer.x = cx;
+        prevPointer.y = cy;
+
+        player.yaw -= dx * 0.0042;
+        player.pitch = Math.max(-0.45, Math.min(0.55, player.pitch - dy * 0.0032));
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        touchMode = 'pinch';
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        prevPinchDist = Math.hypot(dx, dy);
+      } else if (e.touches.length === 1) {
+        touchMode = 'drag';
+        prevPointer.x = e.touches[0].clientX;
+        prevPointer.y = e.touches[0].clientY;
+      } else {
+        touchMode = 'none';
+      }
+    };
+
+    // Desktop Mouse Wheel Zoom
+    const onWheel = (e: WheelEvent) => {
+      targetFov = Math.max(26, Math.min(88, targetFov + (e.deltaY > 0 ? 3.5 : -3.5)));
+    };
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('touchcancel', onTouchEnd);
+    window.addEventListener('wheel', onWheel, { passive: true });
 
     // -------------------------------------------------------------------------
     // 13. MAIN ANIMATION & SIMULATION LOOP
@@ -1553,6 +1707,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const dt = Math.min(clock.getDelta(), 0.1);
       const elapsed = clock.getElapsedTime();
       const current = stateRef.current;
+
+      // Smooth Pinch / Wheel Zoom adjustment
+      if (Math.abs(camera.fov - targetFov) > 0.05) {
+        camera.fov = THREE.MathUtils.damp(camera.fov, targetFov, 9.0, dt);
+        camera.updateProjectionMatrix();
+      }
 
       // Atmosphere updates
       const pal = ATMOSPHERE_PALETTES[current.config.atmosphere] || ATMOSPHERE_PALETTES.TWILIGHT;
@@ -1880,15 +2040,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
       if (constellationSprite) {
         const isCeleb = current.finaleTriggered || (current.isFilmPlaying && filmTime >= 44.0);
-        const targetOp = isCeleb ? 0.95 : 0.25;
-        const targetScaleY = isCeleb ? 9.5 + Math.sin(elapsed * 2.5) * 0.4 : 8.5;
+        const targetOp = isCeleb ? 0.98 : 0.45;
+        const pulse = Math.sin(elapsed * 2.2) * 0.8;
         (constellationSprite.material as THREE.SpriteMaterial).opacity = THREE.MathUtils.damp(
           (constellationSprite.material as THREE.SpriteMaterial).opacity,
-          targetOp,
+          targetOp + Math.sin(elapsed * 3.0) * 0.04,
           2.5,
           dt
         );
-        constellationSprite.scale.y = THREE.MathUtils.damp(constellationSprite.scale.y, targetScaleY, 2.5, dt);
+        constellationSprite.scale.x = THREE.MathUtils.damp(constellationSprite.scale.x, 46 + pulse * 1.6, 2.5, dt);
+        constellationSprite.scale.y = THREE.MathUtils.damp(constellationSprite.scale.y, 17.5 + pulse * 0.6, 2.5, dt);
       }
 
       // Animate Sacred Tree Fairy Lights during celebration
@@ -2021,6 +2182,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       window.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
+      window.removeEventListener('wheel', onWheel);
       renderer.dispose();
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);

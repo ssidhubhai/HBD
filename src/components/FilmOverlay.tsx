@@ -27,14 +27,7 @@ export const FilmOverlay: React.FC<FilmOverlayProps> = ({
       <div className={`letterbox-bar letterbox-top top-0 ${letterboxEnabled ? 'h-[7vh] border-b border-amber-400/20' : 'h-0'}`} />
       <div className={`letterbox-bar letterbox-bottom bottom-0 ${letterboxEnabled ? 'h-[7vh] border-t border-amber-400/20' : 'h-0'}`} />
 
-      {/* Pure Cinematic Movie Subtitle (Timer and Chapter Tags are hidden per user request) */}
-      <div className="fixed bottom-8 sm:bottom-12 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center pointer-events-none w-11/12 max-w-xl text-center px-4">
-        <div className="bg-slate-950/60 backdrop-blur-sm border border-amber-400/25 px-6 py-3 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.85)] transition-all duration-500">
-          <p className="font-serif-editorial italic text-base sm:text-xl text-amber-100/95 leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-            {currentChapter.subtitle}
-          </p>
-        </div>
-      </div>
+
 
       {/* Minimalist discreet skip pill in corner */}
       <div className="fixed top-4 right-4 z-30 pointer-events-auto">

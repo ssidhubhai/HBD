@@ -101,10 +101,10 @@ export const ControlDock: React.FC<ControlDockProps> = ({
               <button
                 type="button"
                 onClick={onReplayFilm}
-                className="btn-gold px-3 py-1.5 rounded-full flex items-center gap-1 touch-manipulation"
-                title="Play 55-Second Cinematic Film"
+                className="btn-gold px-3 py-1.5 rounded-full flex items-center gap-1.5 touch-manipulation"
+                title="Replay Cinematic Sanctuary Journey"
               >
-                <span>🎬</span><span>55s Film</span>
+                <span>↺</span><span>Replay Film</span>
               </button>
               <button
                 type="button"
