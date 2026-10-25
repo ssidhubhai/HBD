@@ -1,0 +1,6 @@
+{
+  "name": "The Secret Garden — 3D Birthday Sanctuary for Shubham",
+  "description": "An immersive 55-second cinematic 3D birthday film and interactive twilight garden sanctuary with procedural Three.js scenes, keepsake pavilion, lantern bridge, and birthday ceremony.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
