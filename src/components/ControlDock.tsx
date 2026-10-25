@@ -35,50 +35,61 @@ export const ControlDock: React.FC<ControlDockProps> = ({
   onReplayFilm,
   onTeleport
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // On mobile screens, default to collapsed so the 3D viewport and joystick are 100% visible
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return typeof window !== 'undefined' && window.innerWidth < 768;
+  });
   const [activeTab, setActiveTab] = useState<'camera' | 'atmosphere' | 'landmarks' | 'audio'>('camera');
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-auto max-w-[95vw] w-full sm:w-auto">
+    <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-auto max-w-[96vw] w-full sm:w-auto">
       {/* Collapse/Expand Toggle Tab */}
       <button
         type="button"
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="glass-pill hover:border-amber-400/80 text-[11px] text-amber-200 px-3.5 py-1 rounded-t-xl -mb-[1px] flex items-center gap-1.5 transition shadow-lg"
+        className="glass-pill hover:border-amber-400/80 text-[11px] text-amber-200 px-3.5 py-1.5 rounded-t-xl -mb-[1px] flex items-center gap-1.5 transition shadow-lg touch-manipulation"
       >
-        <span>{isCollapsed ? '▴ Show Controls' : '▾ Hide Controls (Zen Mode)'}</span>
+        <span>{isCollapsed ? '▴ Show Sanctuary Controls' : '▾ Zen Mode (Hide Controls)'}</span>
       </button>
 
       {/* Main Dock Container */}
       {!isCollapsed && (
-        <div className="glass-panel px-4 py-3 rounded-2xl sm:rounded-full flex flex-col sm:flex-row items-center gap-3 sm:gap-4 shadow-2xl transition-all">
-          {/* Sub-tabs */}
-          <div className="flex items-center gap-1.5 glass-pill px-2 py-1 rounded-full text-xs">
+        <div className="glass-panel px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl sm:rounded-full flex flex-col sm:flex-row items-center gap-2.5 sm:gap-4 shadow-2xl transition-all max-w-full">
+          {/* Sub-tabs with smooth horizontal scroll on mobile */}
+          <div className="flex items-center gap-1 glass-pill px-1.5 py-1 rounded-full text-xs overflow-x-auto max-w-full custom-scrollbar">
             <button
               type="button"
               onClick={() => setActiveTab('camera')}
-              className={`px-2.5 py-1 rounded-full transition ${activeTab === 'camera' ? 'btn-gold text-[11px]' : 'text-slate-300 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-full transition whitespace-nowrap touch-manipulation ${
+                activeTab === 'camera' ? 'btn-gold text-[11px]' : 'text-slate-300 hover:text-white'
+              }`}
             >
               Camera
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('atmosphere')}
-              className={`px-2.5 py-1 rounded-full transition ${activeTab === 'atmosphere' ? 'btn-gold text-[11px]' : 'text-slate-300 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-full transition whitespace-nowrap touch-manipulation ${
+                activeTab === 'atmosphere' ? 'btn-gold text-[11px]' : 'text-slate-300 hover:text-white'
+              }`}
             >
-              Atmosphere
+              Mood
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('landmarks')}
-              className={`px-2.5 py-1 rounded-full transition ${activeTab === 'landmarks' ? 'btn-gold text-[11px]' : 'text-slate-300 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-full transition whitespace-nowrap touch-manipulation ${
+                activeTab === 'landmarks' ? 'btn-gold text-[11px]' : 'text-slate-300 hover:text-white'
+              }`}
             >
               Landmarks
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('audio')}
-              className={`px-2.5 py-1 rounded-full transition ${activeTab === 'audio' ? 'btn-gold text-[11px]' : 'text-slate-300 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-full transition whitespace-nowrap touch-manipulation ${
+                activeTab === 'audio' ? 'btn-gold text-[11px]' : 'text-slate-300 hover:text-white'
+              }`}
             >
               Audio
             </button>
@@ -90,7 +101,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
               <button
                 type="button"
                 onClick={onReplayFilm}
-                className="btn-gold px-3 py-1 rounded-full flex items-center gap-1"
+                className="btn-gold px-3 py-1.5 rounded-full flex items-center gap-1 touch-manipulation"
                 title="Play 55-Second Cinematic Film"
               >
                 <span>🎬</span><span>55s Film</span>
@@ -98,28 +109,42 @@ export const ControlDock: React.FC<ControlDockProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectCameraMode('AERIAL_DRONE')}
-                className={`px-3 py-1 rounded-full transition ${cameraMode === 'AERIAL_DRONE' ? 'bg-amber-400/30 border border-amber-400 text-amber-200' : 'glass-pill text-slate-300 hover:text-white'}`}
+                className={`px-3 py-1.5 rounded-full transition touch-manipulation ${
+                  cameraMode === 'AERIAL_DRONE'
+                    ? 'bg-amber-400/30 border border-amber-400 text-amber-200'
+                    : 'glass-pill text-slate-300 hover:text-white'
+                }`}
               >
                 🛸 Drone
               </button>
               <button
                 type="button"
                 onClick={() => onSelectCameraMode('FREE_ROAM')}
-                className={`px-3 py-1 rounded-full transition ${cameraMode === 'FREE_ROAM' ? 'bg-amber-400/30 border border-amber-400 text-amber-200' : 'glass-pill text-slate-300 hover:text-white'}`}
+                className={`px-3 py-1.5 rounded-full transition touch-manipulation ${
+                  cameraMode === 'FREE_ROAM'
+                    ? 'bg-amber-400/30 border border-amber-400 text-amber-200'
+                    : 'glass-pill text-slate-300 hover:text-white'
+                }`}
               >
                 🚶 Walk
               </button>
               <button
                 type="button"
                 onClick={() => onSelectCameraMode('ALTAR_ORBIT')}
-                className={`px-3 py-1 rounded-full transition ${cameraMode === 'ALTAR_ORBIT' ? 'bg-amber-400/30 border border-amber-400 text-amber-200' : 'glass-pill text-slate-300 hover:text-white'}`}
+                className={`px-3 py-1.5 rounded-full transition touch-manipulation ${
+                  cameraMode === 'ALTAR_ORBIT'
+                    ? 'bg-amber-400/30 border border-amber-400 text-amber-200'
+                    : 'glass-pill text-slate-300 hover:text-white'
+                }`}
               >
-                🎂 Altar Orbit
+                🎂 Altar
               </button>
               <button
                 type="button"
                 onClick={onToggleLetterbox}
-                className={`px-2.5 py-1 rounded-full transition hidden md:inline-flex ${letterboxEnabled ? 'border border-amber-400 text-amber-300' : 'glass-pill text-slate-400'}`}
+                className={`px-2.5 py-1.5 rounded-full transition hidden md:inline-flex touch-manipulation ${
+                  letterboxEnabled ? 'border border-amber-400 text-amber-300' : 'glass-pill text-slate-400'
+                }`}
               >
                 2.39:1 {letterboxEnabled ? 'ON' : 'OFF'}
               </button>
@@ -133,7 +158,11 @@ export const ControlDock: React.FC<ControlDockProps> = ({
                   key={atmKey}
                   type="button"
                   onClick={() => onSelectAtmosphere(atmKey)}
-                  className={`px-3 py-1 rounded-full transition ${atmosphere === atmKey ? 'bg-amber-400/30 border border-amber-400 text-amber-200 font-medium' : 'glass-pill text-slate-300 hover:text-white'}`}
+                  className={`px-3 py-1.5 rounded-full transition touch-manipulation ${
+                    atmosphere === atmKey
+                      ? 'bg-amber-400/30 border border-amber-400 text-amber-200 font-medium'
+                      : 'glass-pill text-slate-300 hover:text-white'
+                  }`}
                 >
                   {ATMOSPHERE_PALETTES[atmKey].name}
                 </button>
@@ -146,28 +175,28 @@ export const ControlDock: React.FC<ControlDockProps> = ({
               <button
                 type="button"
                 onClick={() => onTeleport('gate')}
-                className="glass-pill hover:border-amber-400 text-slate-200 px-2.5 py-1 rounded-full"
+                className="glass-pill hover:border-amber-400 text-slate-200 px-3 py-1.5 rounded-full touch-manipulation"
               >
                 I. Gate
               </button>
               <button
                 type="button"
                 onClick={() => onTeleport('pavilion')}
-                className="glass-pill hover:border-amber-400 text-slate-200 px-2.5 py-1 rounded-full"
+                className="glass-pill hover:border-amber-400 text-slate-200 px-3 py-1.5 rounded-full touch-manipulation"
               >
                 II. Pavilion
               </button>
               <button
                 type="button"
                 onClick={() => onTeleport('bridge')}
-                className="glass-pill hover:border-amber-400 text-slate-200 px-2.5 py-1 rounded-full"
+                className="glass-pill hover:border-amber-400 text-slate-200 px-3 py-1.5 rounded-full touch-manipulation"
               >
                 III. Bridge
               </button>
               <button
                 type="button"
                 onClick={() => onTeleport('clearing')}
-                className="glass-pill hover:border-amber-400 text-slate-200 px-2.5 py-1 rounded-full"
+                className="glass-pill hover:border-amber-400 text-slate-200 px-3 py-1.5 rounded-full touch-manipulation"
               >
                 IV. Ancient Tree
               </button>
@@ -179,7 +208,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
               <button
                 type="button"
                 onClick={onToggleMute}
-                className="glass-pill hover:border-amber-400 text-slate-200 px-3 py-1 rounded-full flex items-center gap-1"
+                className="glass-pill hover:border-amber-400 text-slate-200 px-3.5 py-1.5 rounded-full flex items-center gap-1 touch-manipulation"
               >
                 <span>{isMuted ? '🔇' : '🔊'}</span>
                 <span>{isMuted ? 'Unmute' : 'Muted'}</span>
@@ -187,9 +216,9 @@ export const ControlDock: React.FC<ControlDockProps> = ({
               <button
                 type="button"
                 onClick={onPlayAnthem}
-                className="glass-pill hover:border-amber-400 text-amber-200 px-3 py-1 rounded-full flex items-center gap-1"
+                className="glass-pill hover:border-amber-400 text-amber-200 px-3.5 py-1.5 rounded-full flex items-center gap-1 touch-manipulation"
               >
-                <span>♫</span><span>Play Birthday Song</span>
+                <span>♫</span><span>Birthday Song</span>
               </button>
             </div>
           )}
@@ -199,7 +228,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
             <button
               type="button"
               onClick={onOpenPostcard}
-              className="glass-pill hover:border-amber-400 text-xs text-amber-200 px-3 py-1 rounded-full flex items-center gap-1"
+              className="glass-pill hover:border-amber-400 text-xs text-amber-200 px-3 py-1.5 rounded-full flex items-center gap-1 touch-manipulation"
               title="Save a High-Resolution Souvenir Birthday Postcard"
             >
               <span>📸</span><span>Postcard</span>
@@ -207,7 +236,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
             <button
               type="button"
               onClick={onOpenPersonalize}
-              className="glass-pill hover:border-amber-400 text-xs text-slate-200 px-3 py-1 rounded-full flex items-center gap-1"
+              className="glass-pill hover:border-amber-400 text-xs text-slate-200 px-3 py-1.5 rounded-full flex items-center gap-1 touch-manipulation"
               title="Personalize Name, Wishes & Messages"
             >
               <span>✎</span><span>Edit</span>
@@ -215,7 +244,7 @@ export const ControlDock: React.FC<ControlDockProps> = ({
             <button
               type="button"
               onClick={onOpenGuide}
-              className="glass-pill hover:border-amber-400 text-xs text-slate-300 w-7 h-7 rounded-full flex items-center justify-center"
+              className="glass-pill hover:border-amber-400 text-xs text-slate-300 w-8 h-8 rounded-full flex items-center justify-center touch-manipulation"
               title="Controls & Guide"
             >
               ?

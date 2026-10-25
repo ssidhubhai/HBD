@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GardenConfig, CameraMode, GardenStage } from '../types/garden';
-import { FILM_CHAPTERS, ATMOSPHERE_PALETTES } from '../utils/constants';
+import { FILM_CHAPTERS, ATMOSPHERE_PALETTES, TOTAL_FILM_DURATION } from '../utils/constants';
 import { audioEngine } from '../services/audioEngine';
 
 interface ThreeCanvasProps {
@@ -16,6 +16,7 @@ interface ThreeCanvasProps {
   finaleTriggered: boolean;
   candlesBlown: boolean;
   teleportTarget: { x: number; y: number; z: number; yaw: number } | null;
+  joystickVector?: { x: number; y: number };
   onFilmProgress: (elapsed: number) => void;
   onFilmComplete: () => void;
   onGateUnlocked: () => void;
@@ -40,6 +41,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   finaleTriggered,
   candlesBlown,
   teleportTarget,
+  joystickVector = { x: 0, y: 0 },
   onFilmProgress,
   onFilmComplete,
   onGateUnlocked,
@@ -67,6 +69,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     finaleTriggered,
     candlesBlown,
     teleportTarget,
+    joystickVector,
     onFilmProgress,
     onFilmComplete,
     onGateUnlocked,
@@ -91,6 +94,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       finaleTriggered,
       candlesBlown,
       teleportTarget,
+      joystickVector,
       onFilmProgress,
       onFilmComplete,
       onGateUnlocked,
@@ -1363,24 +1367,100 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     scene.add(fireflyPoints);
 
     // -------------------------------------------------------------------------
-    // 11. 55-SECOND CATMULL-ROM CAMERA CURVES
+    // DYNAMIC AVENUE LAMPS (AS CAMERA MOVES ALONG THE LAMPS IT GLOWS!)
+    // -------------------------------------------------------------------------
+    const avenueLamps: {
+      post: THREE.Mesh;
+      lamp: THREE.Mesh;
+      glow: THREE.Sprite;
+      ptLight: THREE.PointLight;
+      mat: THREE.MeshStandardMaterial;
+      worldPos: THREE.Vector3;
+      lit: boolean;
+    }[] = [];
+
+    const avenueLampCoords = [
+      [-2.8, 32], [2.8, 30],
+      [-2.8, 25], [2.8, 23],
+      [-2.8, 18], [2.8, 16],
+      [-6.5, 10.5], [-10.5, 8.2],
+      [2.8, 11], [-2.8, 9],
+      [2.6, 2], [-2.6, 0],
+      [2.6, -4], [-2.6, -6],
+      [-2.4, -18], [2.4, -18],
+      [-2.4, -23], [2.4, -23],
+      [-3.0, -28], [3.0, -28],
+      [-8.0, -32], [8.0, -32],
+      [-10.0, -38], [10.0, -38],
+      [-6.0, -42], [6.0, -42]
+    ];
+
+    avenueLampCoords.forEach(([lx, lz], idx) => {
+      const ly = getTerrainHeight(lx, lz);
+      const post = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.07, 0.1, 2.5, 6),
+        ironMat
+      );
+      post.position.set(lx, ly + 1.25, lz);
+      post.castShadow = true;
+      scene.add(post);
+
+      const lampMat = new THREE.MeshStandardMaterial({
+        color: 0x64748b,
+        emissive: 0xf59e0b,
+        emissiveIntensity: 0.15,
+        roughness: 0.3
+      });
+      const lamp = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.22, 0.16, 0.5, 6),
+        lampMat
+      );
+      lamp.position.set(lx, ly + 2.6, lz);
+      scene.add(lamp);
+
+      const glow = new THREE.Sprite(
+        new THREE.SpriteMaterial({ map: warmGlowTex, transparent: true, opacity: 0.22 })
+      );
+      glow.position.set(lx, ly + 2.6, lz);
+      glow.scale.set(1.2, 1.2, 1);
+      scene.add(glow);
+
+      const ptLight = new THREE.PointLight(0xffb74d, 0.15, 12);
+      ptLight.position.set(lx, ly + 2.6, lz);
+      scene.add(ptLight);
+
+      avenueLamps.push({
+        post,
+        lamp,
+        glow,
+        ptLight,
+        mat: lampMat,
+        worldPos: new THREE.Vector3(lx, ly + 2.6, lz),
+        lit: false
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // 11. EXTENDED CINEMATIC FILM SPLINES (72-Second Majestic Journey)
     // -------------------------------------------------------------------------
     const filmCameraCurve = new THREE.CatmullRomCurve3(
       [
         new THREE.Vector3(0, 6.5, 52), // 0s: Grand aerial establishing
-        new THREE.Vector3(0, 3.2, 41), // 5s: Toward gate
-        new THREE.Vector3(0, 2.7, 31), // 9s: Passing gate
-        new THREE.Vector3(0, 2.6, 21), // 14s: Along lantern avenue
-        new THREE.Vector3(-3.5, 2.7, 13.0), // 19s: Arcing toward pavilion
-        new THREE.Vector3(-8.8, 2.6, 8.0), // 24s: Wide pavilion view
-        new THREE.Vector3(-9.2, 2.6, 4.5), // 28s: Keepsake murals
-        new THREE.Vector3(-3.2, 2.6, 0.5), // 33s: Rejoining avenue
-        new THREE.Vector3(0, 2.8, -6.5), // 37s: Toward Lantern Bridge
-        new THREE.Vector3(0, 3.5, -12.0), // 41s: Over the bridge
-        new THREE.Vector3(0, 2.9, -21.0), // 45s: Entering clearing
-        new THREE.Vector3(3.2, 2.8, -29.5), // 49s: Arcing altar
-        new THREE.Vector3(-2.4, 2.9, -29.5), // 52s: Sacred tree & constellation
-        new THREE.Vector3(0, 2.2, -27.5) // 55s: Settle at altar
+        new THREE.Vector3(0, 3.4, 42), // 6s: Toward gate
+        new THREE.Vector3(0, 2.7, 31), // 10s: Passing gate, avenue lamps surge in gold
+        new THREE.Vector3(0, 2.6, 21), // 16s: Along lantern avenue as lamps flare
+        new THREE.Vector3(-3.5, 2.7, 13.0), // 22s: Arcing toward pavilion
+        new THREE.Vector3(-8.8, 2.6, 8.0), // 27s: Wide pavilion view
+        new THREE.Vector3(-9.2, 2.6, 4.5), // 31s: Keepsake murals
+        new THREE.Vector3(-3.2, 2.6, 0.5), // 36s: Rejoining avenue
+        new THREE.Vector3(0, 2.8, -6.5), // 40s: Toward Lantern Bridge
+        new THREE.Vector3(0, 3.5, -12.0), // 44s: Over the bridge
+        new THREE.Vector3(0, 2.9, -21.0), // 48s: Entering clearing
+        new THREE.Vector3(4.5, 3.4, -28.0), // 54s: Extended celebration - panoramic sweep around tree
+        new THREE.Vector3(3.6, 3.6, -36.5), // 60s: Close arc around Birthday Cake, presents, balloons
+        new THREE.Vector3(-3.5, 4.2, -38.5), // 65s: Gazing up at Ancient Tree & "SHUBHAM" Constellation
+        new THREE.Vector3(-1.8, 2.8, -30.0), // 69s: Descending into the clearing
+        new THREE.Vector3(0, 2.1, -27.5) // 72s: Pristine final position facing Altar
       ],
       false,
       'centripetal',
@@ -1399,10 +1479,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         new THREE.Vector3(0, 2.6, -9.0),
         new THREE.Vector3(0, 2.8, -15.0),
         new THREE.Vector3(0, 3.4, -26.0),
-        new THREE.Vector3(0, 5.0, -37.0),
-        new THREE.Vector3(0, 3.2, -36.0),
-        new THREE.Vector3(0, 11.0, -42.0),
-        new THREE.Vector3(0, 4.2, -36.5)
+        new THREE.Vector3(0, 4.5, -36.5),
+        new THREE.Vector3(0, 2.8, -35.5),
+        new THREE.Vector3(0, 3.2, -36.5),
+        new THREE.Vector3(0, 16.0, -45.0),
+        new THREE.Vector3(0, 5.2, -37.0),
+        new THREE.Vector3(0, 2.5, -35.5)
       ],
       false,
       'centripetal',
@@ -1499,11 +1581,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (barrierMat.opacity < 0.02) bridgeBarrierMesh.visible = false;
       }
 
-      // 55-Second Film Director Mode
+      // Extended 72-Second Cinematic Sanctuary Film Mode
       if (current.isFilmPlaying) {
         filmTime += dt;
         current.onFilmProgress(filmTime);
-        const t = Math.min(1.0, filmTime / 55.0);
+        const t = Math.min(1.0, filmTime / TOTAL_FILM_DURATION);
 
         const camPos = filmCameraCurve.getPointAt(t);
         const lookTarget = filmLookCurve.getPointAt(t);
@@ -1522,7 +1604,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           audioEngine.playGateOpening();
         }
 
-        // Auto bloom blossoms
+        // Auto bloom spirit blossoms
         animatedFlowers.forEach((fl, idx) => {
           if (!fl.awakened && camPos.distanceTo(fl.worldPos) < 9.5) {
             fl.awakened = true;
@@ -1545,16 +1627,38 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           audioEngine.playLanternBridge();
         }
 
-        // Auto ignite finale
-        if (filmTime >= 45.0 && !current.finaleTriggered) {
+        // Extended celebration sequence: Wave 1 - Sacred clearing arrival & sky lanterns
+        if (filmTime >= 44.0 && !current.finaleTriggered) {
           current.onFinaleAwakened();
-          spawnSkyLanterns(26);
+          spawnSkyLanterns(28);
           addFirework(-5, 17, -42, 0xfbbf24);
-          setTimeout(() => addFirework(5, 19, -44, 0x38bdf8), 600);
-          setTimeout(() => addFirework(0, 20, -40, 0xf472b6), 1200);
+          setTimeout(() => addFirework(5, 19, -44, 0x38bdf8), 700);
+          setTimeout(() => addFirework(0, 21, -40, 0xf472b6), 1400);
         }
 
-        if (filmTime >= 55.0) {
+        // Wave 2: Celestial emerald & amber bursts over ancient tree at 51s
+        if (filmTime >= 51.0 && filmTime - dt < 51.0) {
+          addFirework(-7, 22, -45, 0x34d399);
+          addFirework(7, 20, -43, 0xfbbf24);
+        }
+
+        // Wave 3: Second sky lantern flight & royal violet starbursts at 58s
+        if (filmTime >= 58.0 && filmTime - dt < 58.0) {
+          spawnSkyLanterns(20);
+          addFirework(0, 24, -46, 0xa855f7);
+          setTimeout(() => addFirework(-4, 23, -41, 0x38bdf8), 500);
+          setTimeout(() => addFirework(4, 25, -42, 0xfef08a), 1000);
+        }
+
+        // Wave 4: Grand triple celebration cascade as camera arcs around birthday cake & constellation at 64s
+        if (filmTime >= 64.0 && filmTime - dt < 64.0) {
+          addFirework(-6, 26, -44, 0xf59e0b);
+          addFirework(6, 26, -44, 0xec4899);
+          setTimeout(() => addFirework(0, 28, -48, 0x60a5fa), 600);
+        }
+
+        // Complete 72s film smoothly into free-roam mode
+        if (filmTime >= TOTAL_FILM_DURATION) {
           filmTime = 0;
           current.onFilmComplete();
         }
@@ -1586,6 +1690,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (keys.KeyS || keys.ArrowDown) forwardInput -= 1;
         if (keys.KeyD || keys.ArrowRight) rightInput += 1;
         if (keys.KeyA || keys.ArrowLeft) rightInput -= 1;
+
+        if (current.joystickVector) {
+          forwardInput -= current.joystickVector.y;
+          rightInput += current.joystickVector.x;
+        }
 
         const forward = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
         const right = new THREE.Vector3(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
@@ -1711,6 +1820,86 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
         current.onNearbyObjectChange(nearby);
       }
+
+      // -----------------------------------------------------------------------
+      // DYNAMIC AVENUE LAMPS CASCADE: AS CAMERA MOVES ALONG THE LAMPS IT GLOWS!
+      // -----------------------------------------------------------------------
+      const activeCamPos = camera.position;
+      avenueLamps.forEach((lampObj, idx) => {
+        const dist = activeCamPos.distanceTo(lampObj.worldPos);
+        // When camera or player approaches within 9.5 meters, lamp surges into golden glow!
+        if (dist < 9.5 && !lampObj.lit) {
+          lampObj.lit = true;
+          audioEngine.playChime(523.25 + (idx % 8) * 45, 1.4, 0.08);
+        }
+
+        // Smooth lighting intensity damping
+        if (lampObj.lit) {
+          lampObj.mat.emissiveIntensity = THREE.MathUtils.damp(lampObj.mat.emissiveIntensity, 2.4, 4.0, dt);
+          lampObj.glow.scale.x = THREE.MathUtils.damp(lampObj.glow.scale.x, 2.8, 4.0, dt);
+          lampObj.glow.scale.y = THREE.MathUtils.damp(lampObj.glow.scale.y, 2.8, 4.0, dt);
+          (lampObj.glow.material as THREE.SpriteMaterial).opacity = THREE.MathUtils.damp(
+            (lampObj.glow.material as THREE.SpriteMaterial).opacity,
+            0.92,
+            4.0,
+            dt
+          );
+          lampObj.ptLight.intensity = THREE.MathUtils.damp(lampObj.ptLight.intensity, 2.6, 4.0, dt);
+        } else {
+          lampObj.mat.emissiveIntensity = THREE.MathUtils.damp(lampObj.mat.emissiveIntensity, 0.2, 2.0, dt);
+          lampObj.ptLight.intensity = THREE.MathUtils.damp(lampObj.ptLight.intensity, 0.15, 2.0, dt);
+        }
+      });
+
+      // Animate Bridge Lanterns
+      bridgeLanternObjs.forEach((bl, idx) => {
+        const isLit = current.bridgeUnlocked || (current.isFilmPlaying && filmTime >= 36.5 + idx * 2.0);
+        if (isLit) {
+          bl.mat.emissiveIntensity = THREE.MathUtils.damp(bl.mat.emissiveIntensity, 2.0, 3.5, dt);
+          bl.glow.scale.set(2.8, 2.8, 1);
+          (bl.glow.material as THREE.SpriteMaterial).opacity = THREE.MathUtils.damp(
+            (bl.glow.material as THREE.SpriteMaterial).opacity,
+            0.9,
+            3.5,
+            dt
+          );
+          bl.ptLight.intensity = THREE.MathUtils.damp(bl.ptLight.intensity, 2.5, 3.5, dt);
+        }
+      });
+
+      // Animate Birthday Canopy Banner & Star Constellation
+      if (birthdayBannerSprite) {
+        const isCeleb = current.finaleTriggered || (current.isFilmPlaying && filmTime >= 44.0);
+        (birthdayBannerSprite.material as THREE.SpriteMaterial).opacity = THREE.MathUtils.damp(
+          (birthdayBannerSprite.material as THREE.SpriteMaterial).opacity,
+          isCeleb ? 1.0 : 0.0,
+          2.5,
+          dt
+        );
+      }
+
+      if (constellationSprite) {
+        const isCeleb = current.finaleTriggered || (current.isFilmPlaying && filmTime >= 44.0);
+        const targetOp = isCeleb ? 0.95 : 0.25;
+        const targetScaleY = isCeleb ? 9.5 + Math.sin(elapsed * 2.5) * 0.4 : 8.5;
+        (constellationSprite.material as THREE.SpriteMaterial).opacity = THREE.MathUtils.damp(
+          (constellationSprite.material as THREE.SpriteMaterial).opacity,
+          targetOp,
+          2.5,
+          dt
+        );
+        constellationSprite.scale.y = THREE.MathUtils.damp(constellationSprite.scale.y, targetScaleY, 2.5, dt);
+      }
+
+      // Animate Sacred Tree Fairy Lights during celebration
+      clearingFairyLights.forEach((fl, idx) => {
+        const isCeleb = current.finaleTriggered || (current.isFilmPlaying && filmTime >= 44.0);
+        const baseOp = isCeleb ? 0.85 : 0.42;
+        (fl.material as THREE.SpriteMaterial).opacity =
+          baseOp + Math.sin(elapsed * 4.0 + idx * 0.7) * (isCeleb ? 0.25 : 0.12);
+        const scaleVal = (isCeleb ? 1.8 : 1.25) + Math.sin(elapsed * 3.0 + idx) * 0.2;
+        fl.scale.set(scaleVal, scaleVal, 1);
+      });
 
       // Animate Flowers, Keepsake Panels & Fairy Lights
       animatedFlowers.forEach((fl) => {

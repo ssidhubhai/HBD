@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GardenConfig, CameraMode, GardenStage, LightingAtmosphere } from './types/garden';
+import { GardenConfig, CameraMode, GardenStage } from './types/garden';
 import { DEFAULT_CONFIG, FILM_CHAPTERS } from './utils/constants';
 import { ThreeCanvas } from './components/ThreeCanvas';
 import { FilmOverlay } from './components/FilmOverlay';
@@ -30,6 +30,26 @@ export default function App() {
   const [isFilmPlaying, setIsFilmPlaying] = useState(false);
   const [filmElapsed, setFilmElapsed] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
+
+  // Mobile / Touch detection & virtual joystick state
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [joystickVector, setJoystickVector] = useState({ x: 0, y: 0 });
+  const joystickZoneRef = useRef<HTMLDivElement>(null);
+  const joystickKnobRef = useRef<HTMLDivElement>(null);
+  const joystickTouchIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const checkTouch = () => {
+      setIsTouchDevice(
+        'ontouchstart' in window ||
+          navigator.maxTouchPoints > 0 ||
+          window.innerWidth < 768
+      );
+    };
+    checkTouch();
+    window.addEventListener('resize', checkTouch);
+    return () => window.removeEventListener('resize', checkTouch);
+  }, []);
 
   // Progression milestones
   const [gateOpened, setGateOpened] = useState(false);
@@ -79,7 +99,11 @@ export default function App() {
     } else {
       setGateOpened(true);
       setStage('LIVING_GARDEN');
-      showToast('Free Exploration active! Walk with WASD or glide with the mouse wheel.');
+      showToast(
+        isTouchDevice
+          ? 'Use the on-screen joystick on the left to walk & swipe to look!'
+          : 'Free Exploration active! Walk with WASD or glide with the mouse wheel.'
+      );
     }
   };
 
@@ -103,7 +127,7 @@ export default function App() {
     setBridgeUnlocked(true);
     setFinaleTriggered(true);
     setStage('BIRTHDAY_FINALE');
-    showToast(`55-second journey complete! Happy Birthday, ${config.recipientName}!`);
+    showToast(`Cinematic sanctuary journey complete! Happy Birthday, ${config.recipientName}!`);
   };
 
   const handleSaveConfig = (newConfig: GardenConfig) => {
@@ -159,8 +183,50 @@ export default function App() {
     }
   };
 
+  // Virtual Joystick handlers for mobile
+  const handleJoystickDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    joystickTouchIdRef.current = e.pointerId;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    updateJoystickPos(e.clientX, e.clientY);
+  };
+
+  const handleJoystickMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (joystickTouchIdRef.current !== e.pointerId) return;
+    e.stopPropagation();
+    updateJoystickPos(e.clientX, e.clientY);
+  };
+
+  const handleJoystickUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (joystickTouchIdRef.current !== e.pointerId) return;
+    joystickTouchIdRef.current = null;
+    if (joystickKnobRef.current) {
+      joystickKnobRef.current.style.transform = 'translate(0px, 0px)';
+    }
+    setJoystickVector({ x: 0, y: 0 });
+  };
+
+  const updateJoystickPos = (clientX: number, clientY: number) => {
+    if (!joystickZoneRef.current) return;
+    const rect = joystickZoneRef.current.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const maxR = rect.width * 0.36;
+    let dx = clientX - cx;
+    let dy = clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > maxR) {
+      dx = (dx / dist) * maxR;
+      dy = (dy / dist) * maxR;
+    }
+    if (joystickKnobRef.current) {
+      joystickKnobRef.current.style.transform = `translate(${dx}px, ${dy}px)`;
+    }
+    setJoystickVector({ x: dx / maxR, y: dy / maxR });
+  };
+
   return (
-    <div className="relative w-full h-full overflow-hidden select-none bg-[#050914]">
+    <div className="relative w-full h-full overflow-hidden select-none bg-[#050914] touch-none">
       {/* 3D WebGL Canvas Layer */}
       <ThreeCanvas
         config={config}
@@ -173,6 +239,7 @@ export default function App() {
         finaleTriggered={finaleTriggered}
         candlesBlown={candlesBlown}
         teleportTarget={teleportTarget}
+        joystickVector={joystickVector}
         onFilmProgress={(elapsed) => setFilmElapsed(elapsed)}
         onFilmComplete={handleFilmComplete}
         onGateUnlocked={() => setGateOpened(true)}
@@ -197,14 +264,14 @@ export default function App() {
         }}
         onFinaleAwakened={() => {
           setFinaleTriggered(true);
-          setShowFinaleModal(true);
+          // Do NOT pop up the card modal automatically per user request; let user admire the 3D scene!
         }}
         onNearbyObjectChange={(obj) => setNearbyObject(obj)}
         onShowToast={showToast}
         exportPostcardRef={exportPostcardRef}
       />
 
-      {/* 55-Second Cinematic Film Overlay & Scrubber */}
+      {/* 55-Second Cinematic Film Overlay (Hidden timer & chapters per request) */}
       <FilmOverlay
         isFilmPlaying={isFilmPlaying}
         filmElapsed={filmElapsed}
@@ -213,58 +280,82 @@ export default function App() {
         onSkipFilm={() => handleFilmComplete()}
       />
 
-      {/* Top Floating Utility Pills (Clean & minimal, zero screen clutter) */}
+      {/* Mobile-Responsive Top Header Bar */}
       {isStarted && !isFilmPlaying && (
-        <div className="fixed top-4 right-4 z-20 flex items-center gap-2 pointer-events-auto">
-          <button
-            type="button"
-            onClick={start55SecondFilm}
-            className="btn-gold px-4 py-2 rounded-full text-xs font-cinzel tracking-wider uppercase shadow-xl flex items-center gap-1.5"
-          >
-            <span>🎬</span>
-            <span>Replay 55s Film</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowFinaleModal(true)}
-            className="glass-panel hover:border-amber-400 text-amber-200 px-4 py-2 rounded-full text-xs flex items-center gap-1.5 shadow-xl transition"
-          >
-            <span>🎂</span>
-            <span>Birthday Card</span>
-          </button>
-        </div>
-      )}
-
-      {/* Top Header Milestone Badge */}
-      {isStarted && !isFilmPlaying && (
-        <div className="fixed top-4 left-4 z-20 flex items-center gap-2 pointer-events-auto">
-          <div className="glass-pill px-3.5 py-1.5 rounded-full flex items-center gap-2 text-xs">
+        <header className="fixed top-0 left-0 right-0 z-20 p-2.5 sm:p-4 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+          {/* Left Milestone Badge */}
+          <div className="pointer-events-auto glass-pill px-3 py-1.5 rounded-full flex items-center gap-2 text-xs shadow-xl">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_10px_#f59e0b]" />
-            <span className="font-cinzel tracking-wider text-amber-200 font-semibold uppercase">
+            <span className="font-cinzel tracking-wider text-amber-200 font-semibold uppercase text-[11px] sm:text-xs">
               {config.recipientName}'S SANCTUARY
             </span>
-            <span className="text-slate-500">|</span>
-            <span className="text-slate-300">
-              Blossoms {flowersAwakened.size}/6 • Keepsakes {memoriesRead.size}/3 • Lanterns {lanternsLit.size}/3
+            <span className="text-slate-500 hidden sm:inline">|</span>
+            <span className="text-slate-300 text-[10px] sm:text-xs hidden sm:inline">
+              ✦ {flowersAwakened.size}/6 • ❖ {memoriesRead.size}/3 • ☀ {lanternsLit.size}/3
             </span>
+          </div>
+
+          {/* Right Action Pills */}
+          <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={start55SecondFilm}
+              className="btn-gold px-3.5 py-1.5 rounded-full text-xs font-cinzel tracking-wider uppercase shadow-xl flex items-center gap-1.5 touch-manipulation"
+            >
+              <span>🎬</span>
+              <span className="hidden xs:inline">55s Film</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowFinaleModal(true)}
+              className="glass-panel hover:border-amber-400 text-amber-200 px-3.5 py-1.5 rounded-full text-xs flex items-center gap-1.5 shadow-xl transition touch-manipulation"
+            >
+              <span>🎂</span>
+              <span className="hidden xs:inline">Card</span>
+            </button>
+          </div>
+        </header>
+      )}
+
+      {/* Mobile On-Screen Virtual Joystick */}
+      {isStarted && !isFilmPlaying && cameraMode === 'FREE_ROAM' && (
+        <div className="fixed bottom-6 left-5 z-20 flex flex-col items-center pointer-events-auto select-none touch-none">
+          <div
+            ref={joystickZoneRef}
+            onPointerDown={handleJoystickDown}
+            onPointerMove={handleJoystickMove}
+            onPointerUp={handleJoystickUp}
+            onPointerCancel={handleJoystickUp}
+            className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border border-amber-400/40 bg-slate-950/65 backdrop-blur-md relative flex items-center justify-center touch-none shadow-2xl"
+            aria-label="Touch Joystick to Move"
+          >
+            <div className="text-[9px] uppercase tracking-widest text-amber-200/50 absolute top-2 pointer-events-none">
+              MOVE
+            </div>
+            <div
+              ref={joystickKnobRef}
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 shadow-[0_0_15px_rgba(245,196,105,0.7)] pointer-events-none transition-transform duration-75"
+            />
           </div>
         </div>
       )}
 
-      {/* Bottom Center Interaction Prompt */}
+      {/* Bottom Center Interaction Prompt (Thumb-friendly on mobile) */}
       {nearbyObject && !isFilmPlaying && (
         <div className="fixed bottom-24 sm:bottom-28 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
           <button
             type="button"
             onClick={nearbyObject.onInteract}
-            className="glass-panel hover:border-amber-300 px-5 py-2.5 rounded-full flex items-center gap-3 shadow-2xl transition transform hover:scale-105"
+            className="glass-panel hover:border-amber-300 px-5 py-2.5 rounded-full flex items-center gap-3 shadow-2xl transition transform hover:scale-105 touch-manipulation active:scale-95"
           >
-            <span className="w-7 h-7 rounded-full bg-amber-400/20 border border-amber-400 text-amber-300 flex items-center justify-center text-xs font-bold">
-              E
+            <span className="w-8 h-8 rounded-full bg-amber-400/25 border border-amber-400 text-amber-300 flex items-center justify-center text-xs font-bold">
+              {isTouchDevice ? '👆' : 'E'}
             </span>
             <div className="text-left">
               <div className="text-xs sm:text-sm font-semibold text-amber-200">{nearbyObject.title}</div>
-              <div className="text-[11px] text-slate-300">{nearbyObject.subtitle}</div>
+              <div className="text-[11px] text-slate-300">
+                {isTouchDevice ? 'Tap to inspect / interact' : nearbyObject.subtitle}
+              </div>
             </div>
           </button>
         </div>
@@ -272,14 +363,14 @@ export default function App() {
 
       {/* Floating Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-300 max-w-md w-11/12">
-          <div className="glass-panel px-4 py-2.5 rounded-2xl text-center border-amber-400/40 shadow-xl">
+        <div className="fixed top-14 sm:top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-300 max-w-md w-11/12">
+          <div className="glass-panel px-4 py-2 rounded-2xl text-center border-amber-400/40 shadow-xl">
             <p className="text-xs sm:text-sm text-amber-100 font-medium">{toastMessage}</p>
           </div>
         </div>
       )}
 
-      {/* Unified Bottom Control Dock (Collapsible, Zero Viewport Clutter) */}
+      {/* Unified Bottom Control Dock */}
       {isStarted && !isFilmPlaying && (
         <ControlDock
           cameraMode={cameraMode}
@@ -305,18 +396,18 @@ export default function App() {
       {/* Opening Invitation Vista Overlay */}
       {!isStarted && (
         <div className="fixed inset-0 z-40 flex flex-col justify-end items-center p-6 sm:p-10 pointer-events-none transition-opacity duration-700">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pointer-events-auto mb-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pointer-events-auto mb-4 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => handleStartExperience(true)}
-              className="btn-gold py-3.5 px-8 rounded-full font-cinzel tracking-widest text-xs sm:text-sm uppercase flex items-center justify-center gap-2 shadow-2xl"
+              className="btn-gold py-3.5 px-8 rounded-full font-cinzel tracking-widest text-xs sm:text-sm uppercase flex items-center justify-center gap-2 shadow-2xl w-full sm:w-auto touch-manipulation"
             >
               Open the Garden Gates ✦
             </button>
             <button
               type="button"
               onClick={() => handleStartExperience(false)}
-              className="glass-pill hover:border-amber-400 text-amber-200 py-3.5 px-6 rounded-full font-cinzel tracking-wider text-xs uppercase transition shadow-xl"
+              className="glass-pill hover:border-amber-400 text-amber-200 py-3.5 px-6 rounded-full font-cinzel tracking-wider text-xs uppercase transition shadow-xl w-full sm:w-auto touch-manipulation"
             >
               Explore Freely First
             </button>

@@ -63,6 +63,8 @@ export const DEFAULT_CONFIG: GardenConfig = {
   ]
 };
 
+export const TOTAL_FILM_DURATION = 72.0;
+
 export const FILM_CHAPTERS: FilmChapter[] = [
   {
     start: 0,
@@ -82,7 +84,7 @@ export const FILM_CHAPTERS: FilmChapter[] = [
     start: 15,
     end: 22,
     tag: 'Chapter III',
-    subtitle: 'Golden spirit blossoms bloom along the path, whispering: you are deeply loved, admired, and cherished, brother.',
+    subtitle: 'Golden spirit blossoms and radiant lanterns flare into light along your path, whispering brotherly blessings.',
     stage: 'LIVING_GARDEN'
   },
   {
@@ -101,15 +103,22 @@ export const FILM_CHAPTERS: FilmChapter[] = [
   },
   {
     start: 42,
-    end: 49,
+    end: 54,
     tag: 'Chapter VI',
-    subtitle: 'Beneath the Sacred Ancient Tree, a hundred lights and sky lanterns ascend to celebrate you, Shubham.',
+    subtitle: 'Beneath the Sacred Ancient Tree, a hundred fairy lights and golden torches ignite across the clearing.',
     stage: 'HIDDEN_CLEARING'
   },
   {
-    start: 49,
-    end: 55.5,
+    start: 54,
+    end: 64,
     tag: 'Chapter VII',
+    subtitle: 'A constellation of stars spells your name across the heavens as waves of glowing sky lanterns take flight.',
+    stage: 'BIRTHDAY_FINALE'
+  },
+  {
+    start: 64,
+    end: 72.5,
+    tag: 'Chapter VIII',
     subtitle: 'Happy Birthday, Shubham! The world is brighter, kinder, and infinitely richer with you in it.',
     stage: 'BIRTHDAY_FINALE'
   }
